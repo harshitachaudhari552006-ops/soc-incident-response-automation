@@ -1,0 +1,321 @@
+{
+  "name": "Automated SOC Incident Response",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "soc-alert",
+        "options": {
+          "onlyRunIf": "",
+          "responseData": ""
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7ab7dcc8-0850-44e2-88d0-438e3e7a5213",
+      "name": "Webhook",
+      "webhookId": "2399e990-6f9b-4752-992d-b53fa3cc4a45"
+    },
+    {
+      "parameters": {
+        "url": "https://api.abuseipdb.com/api/v2/check",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "ipAddress",
+              "value": "={{$json.body.src_ip}}\n"
+            },
+            {}
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Key",
+              "value": "478fcedcf907ff011d2e53d217702da57d2f0d797461afb89b38cd22c46bbd143bbe6669ff38dffa"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        256,
+        -144
+      ],
+      "id": "5a0889e2-979b-4698-a83b-62e058245b1a",
+      "name": "AbuseIPDB - IP Reputation"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.virustotal.com/api/v3/files/{{$json.body.file_hash}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-apikey",
+              "value": "87a701c6de24d9340af3d7128ac6ec80a3f15a972ab2021eb1e642cdb6ba71ba"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        144
+      ],
+      "id": "663d7693-5e0d-4637-b2ec-b1659459ac82",
+      "name": "VirusTotal - Hash Check"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        480,
+        16
+      ],
+      "id": "a471f164-5303-443c-b414-7d4ab3701b19",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d20aa286-9851-4e7d-a65b-27cf29526a7d",
+              "name": "alert_name",
+              "value": "={{ $('Webhook').item.json.body.alert_name\n}}",
+              "type": "string"
+            },
+            {
+              "id": "711b91f8-7019-4fbe-8c30-4487199ff7df",
+              "name": "severity",
+              "value": "={{ $('Webhook').item.json.body.severity }}",
+              "type": "string"
+            },
+            {
+              "id": "edd74ba6-6b32-4873-bd2a-3bfd94b83b00",
+              "name": "src_ip",
+              "value": "={{ $('Webhook').item.json.body.src_ip }}",
+              "type": "string"
+            },
+            {
+              "id": "a6e8c6b2-bf6b-438c-9047-a585059cbbfe",
+              "name": "username",
+              "value": "={{ $('Webhook').item.json.body.username }}",
+              "type": "string"
+            },
+            {
+              "id": "42be1546-13da-4dd0-863f-2f62eaa58a69",
+              "name": "event_count",
+              "value": "={{ $('Webhook').item.json.body.event_count }}",
+              "type": "string"
+            },
+            {
+              "id": "49147c6d-9130-4db5-a450-58fc41564ac8",
+              "name": "file_hash",
+              "value": "={{ $('Webhook').item.json.body.file_hash }}",
+              "type": "string"
+            },
+            {
+              "id": "3e7f01e4-24d0-4619-b896-3bc8d3b3243c",
+              "name": "abuse_score",
+              "value": "={{ $('AbuseIPDB - IP Reputation').item.json.data.abuseConfidenceScore }}",
+              "type": "string"
+            },
+            {
+              "id": "d1efae4d-007d-448a-9421-2b2882e20d78",
+              "name": "abuse_reports",
+              "value": "={{ $('AbuseIPDB - IP Reputation').item.json.data.totalReports }}",
+              "type": "string"
+            },
+            {
+              "id": "ff0b7117-b387-4eb0-9b65-79d8b735cf7e",
+              "name": "vt_malicious",
+              "value": "={{ $('VirusTotal - Hash Check').item.json.data.attributes.last_analysis_stats.malicious }}",
+              "type": "string"
+            },
+            {
+              "id": "4e7a50b3-2985-44bb-8a2a-457efaeea2ec",
+              "name": "vt_suspicious",
+              "value": "={{ $('VirusTotal - Hash Check').item.json.data.attributes.last_analysis_stats.suspicious }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        704,
+        16
+      ],
+      "id": "2eb741c2-92cf-4e4e-bf84-e165275f3acb",
+      "name": "Prepare SOC Incident"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2166f769-68d7-426c-a6a2-1dd42fd11ece",
+              "leftValue": "={{ Number($json.vt_malicious) }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        16
+      ],
+      "id": "adb60fb7-2ffd-484b-bca8-6bc3c88cd90a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "harshitachaudhari552006@gmail.com",
+        "subject": "=SOC Alert - {{$json.alert_name}} - {{$json.src_ip}}",
+        "message": "=<h2>SOC SECURITY ALERT</h2>  <p><b>Alert:</b> {{$json.alert_name}}</p> <p><b>Severity:</b> {{$json.severity}}</p>  <h3>Alert Details</h3> <p><b>Source IP:</b> {{$json.src_ip}}<br> <b>Username:</b> {{$json.username}}<br> <b>Event Count:</b> {{$json.event_count}}<br> <b>File Hash:</b> {{$json.file_hash}}</p>  <h3>Threat Intelligence</h3> <p><b>AbuseIPDB Score:</b> {{$json.abuse_score}}<br> <b>AbuseIPDB Reports:</b> {{$json.abuse_reports}}<br> <b>VirusTotal Malicious:</b> {{$json.vt_malicious}}<br> <b>VirusTotal Suspicious:</b> {{$json.vt_suspicious}}</p>  <h3>Recommended Action</h3> <p>High-risk alert detected. Please investigate the alert.</p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        -80
+      ],
+      "id": "cf16e5dd-fd4c-47de-8f9b-3f5b5ce68ffe",
+      "name": "Send a message",
+      "webhookId": "09d2fb07-9290-4e92-8f2b-cc447872d943",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aVBq1fM36X9hOKCW",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "VirusTotal - Hash Check",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AbuseIPDB - IP Reputation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VirusTotal - Hash Check": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AbuseIPDB - IP Reputation": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Prepare SOC Incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare SOC Incident": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "124b069a-5f6e-45cf-9fe3-18ad83bbd750",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "600f3b8dbe3d47828e7b014a0d4e3268c0e8456c4bb01cf545bf7c6463d98e20"
+  },
+  "nodeGroups": [],
+  "id": "83SjIaNrHIrMu11M",
+  "tags": []
+}
