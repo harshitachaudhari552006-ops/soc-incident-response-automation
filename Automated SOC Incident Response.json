@@ -38,7 +38,7 @@
           "parameters": [
             {
               "name": "Key",
-              "value": "478fcedcf907ff011d2e53d217702da57d2f0d797461afb89b38cd22c46bbd143bbe6669ff38dffa"
+              "value": ""
             },
             {
               "name": "Accept",
@@ -65,7 +65,7 @@
           "parameters": [
             {
               "name": "x-apikey",
-              "value": "87a701c6de24d9340af3d7128ac6ec80a3f15a972ab2021eb1e642cdb6ba71ba"
+              "value": ""
             }
           ]
         },
